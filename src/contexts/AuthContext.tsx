@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import type { Profile, UserRole } from '@/types/database';
 import type { User } from '@supabase/supabase-js';
@@ -28,88 +28,112 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileChecked, setProfileChecked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const initDone = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
+    // Prevent double init in React strict mode
+    if (initDone.current) return;
+    initDone.current = true;
+
     const supabase = createClient();
 
+    const finishLoading = (p?: any) => {
+      if (p) setProfile(p);
+      setProfileChecked(true);
+      setLoading(false);
+    };
+
     // SAFETY: force loading=false after 3 seconds no matter what
-    const timeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.warn('[Auth] Timeout — forcing loading=false');
-        setLoading(false);
-      }
+    setTimeout(() => {
+      setProfileChecked((prev) => {
+        if (!prev) {
+          console.warn('[Auth] Timeout — forcing loading=false');
+          setLoading(false);
+          return true;
+        }
+        return prev;
+      });
     }, 3000);
 
-    // Check session
-    supabase.auth.getSession().then(({ data: { session } }: any) => {
-      if (!mounted) return;
-      console.log('[Auth] Session:', session ? session.user.email : 'none');
-      setUser(session?.user ?? null);
-      setLoading(false);
+    // Check session + load profile
+    supabase.auth.getSession()
+      .then(({ data: { session } }: any) => {
+        console.log('[Auth] Session:', session ? session.user.email : 'none');
+        const u = session?.user ?? null;
+        setUser(u);
 
-      // Load profile in background (non-blocking)
-      if (session?.user) {
+        if (!u) {
+          finishLoading();
+          return;
+        }
+
+        // Load profile — with catch to ALWAYS finish loading
         supabase
           .from('profiles')
           .select('*')
-          .eq('id', session.user.id)
+          .eq('id', u.id)
           .single()
           .then(({ data, error }: any) => {
-            if (!mounted) return;
-            console.log('[Auth] Profile:', data ? data.role : 'none', error?.message || '');
-            if (data) setProfile(data);
+            console.log('[Auth] Profile:', data?.role ?? 'no profile', error?.message || '');
+            finishLoading(data || null);
+          })
+          .catch((err: any) => {
+            console.error('[Auth] Profile error:', err);
+            finishLoading();
           });
-      }
-    }).catch((err: any) => {
-      if (!mounted) return;
-      console.error('[Auth] Session error:', err);
-      setLoading(false);
-    });
+      })
+      .catch((err: any) => {
+        console.error('[Auth] Session error:', err);
+        finishLoading();
+      });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event: any, session: any) => {
-        if (!mounted) return;
         console.log('[Auth] State change:', _event);
-        setUser(session?.user ?? null);
-        if (session?.user) {
+        const u = session?.user ?? null;
+        setUser(u);
+        if (u) {
           supabase
             .from('profiles')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('id', u.id)
             .single()
             .then(({ data }: any) => {
-              if (mounted && data) setProfile(data);
-            });
+              if (data) setProfile(data);
+              setProfileChecked(true);
+            })
+            .catch(() => setProfileChecked(true));
         } else {
           setProfile(null);
+          setProfileChecked(true);
         }
       }
     );
 
-    return () => {
-      mounted = false;
-      clearTimeout(timeout);
-      subscription.unsubscribe();
-    };
+    return () => { subscription.unsubscribe(); };
   }, []);
 
   const signOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    try {
+      const supabase = createClient();
+      supabase.auth.signOut().catch(() => {});
+    } catch {}
     setUser(null);
     setProfile(null);
     window.location.href = '/login';
   };
 
-  // Default to 'admin' when no profile loaded yet
-  const role: UserRole | null = profile?.role ?? 'admin';
+  // Si profil vérifié → utiliser son rôle. Si pas de profil trouvé → admin par défaut.
+  const role: UserRole | null = profileChecked
+    ? (profile?.role ?? 'admin')
+    : null;
   const isAdmin = role === 'admin';
   const isSecretaire = role === 'secretaire';
 
-  console.log('[Auth] Render:', { email: user?.email, role, isAdmin, loading });
+  console.log('[Auth] Role:', role, '| email:', user?.email, '| isAdmin:', isAdmin, '| loading:', loading);
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, role, isAdmin, isSecretaire, signOut }}>

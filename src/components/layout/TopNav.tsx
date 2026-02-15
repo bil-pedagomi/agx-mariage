@@ -188,13 +188,11 @@ export default function TopNav() {
           <span className={cn('text-[10px] font-medium', isActive('/clients') ? 'text-white' : 'text-blue-100')}>Clients</span>
         </Link>
 
-        {/* Compte — admin only */}
-        {isAdmin && (
-          <button onClick={handleCompteClick} className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', pathname.includes('/compte') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
-            <Euro className="w-6 h-6 text-white" strokeWidth={1.5} />
-            <span className={cn('text-[10px] font-medium', pathname.includes('/compte') ? 'text-white' : 'text-blue-100')}>Compte</span>
-          </button>
-        )}
+        {/* Compte — admin + secrétaire */}
+        <button onClick={handleCompteClick} className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', pathname.includes('/compte') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
+          <Euro className="w-6 h-6 text-white" strokeWidth={1.5} />
+          <span className={cn('text-[10px] font-medium', pathname.includes('/compte') ? 'text-white' : 'text-blue-100')}>Compte</span>
+        </button>
 
         {/* Planning */}
         <Link href="/planning" className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', isActive('/planning') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
