@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createClient } from '@/lib/supabase-client';
-import { useRouter } from 'next/navigation';
 import { Heart, Mail, Lock, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -10,20 +9,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
-  const router = useRouter();
   const supabase = createClient();
-
-  // If already logged in, redirect to dashboard
-  useEffect(() => {
-    supabase.auth.getUser().then((result: any) => {
-      if (result.data?.user) {
-        router.replace('/dashboard');
-      } else {
-        setCheckingSession(false);
-      }
-    });
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,17 +17,9 @@ export default function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { setError('Email ou mot de passe incorrect'); setLoading(false); return; }
-    router.push('/dashboard');
-    router.refresh();
+    // Hard navigation to ensure full page load with auth context
+    window.location.href = '/dashboard';
   };
-
-  if (checkingSession) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100">
-        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100 px-4">

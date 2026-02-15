@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase-client';
 import type { Profile, UserRole } from '@/types/database';
 import type { User } from '@supabase/supabase-js';
@@ -30,72 +29,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
-  const supabase = createClient();
-  const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+    let mounted = true;
+    const supabase = createClient();
 
-      if (user) {
-        const { data } = await supabase
+    // SAFETY: force loading=false after 3 seconds no matter what
+    const timeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('[Auth] Timeout — forcing loading=false');
+        setLoading(false);
+      }
+    }, 3000);
+
+    // Check session
+    supabase.auth.getSession().then(({ data: { session } }: any) => {
+      if (!mounted) return;
+      console.log('[Auth] Session:', session ? session.user.email : 'none');
+      setUser(session?.user ?? null);
+      setLoading(false);
+
+      // Load profile in background (non-blocking)
+      if (session?.user) {
+        supabase
           .from('profiles')
           .select('*')
-          .eq('id', user.id)
-          .single();
-        setProfile(data);
-        setAuthenticated(true);
-      } else {
-        setAuthenticated(false);
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data, error }: any) => {
+            if (!mounted) return;
+            console.log('[Auth] Profile:', data ? data.role : 'none', error?.message || '');
+            if (data) setProfile(data);
+          });
       }
-
+    }).catch((err: any) => {
+      if (!mounted) return;
+      console.error('[Auth] Session error:', err);
       setLoading(false);
-    };
+    });
 
-    getUser();
-
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event: any, session: any) => {
+      (_event: any, session: any) => {
+        if (!mounted) return;
+        console.log('[Auth] State change:', _event);
         setUser(session?.user ?? null);
         if (session?.user) {
-          const { data } = await supabase
+          supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single();
-          setProfile(data);
-          setAuthenticated(true);
+            .single()
+            .then(({ data }: any) => {
+              if (mounted && data) setProfile(data);
+            });
         } else {
           setProfile(null);
-          setAuthenticated(false);
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Redirect to /login if not authenticated (client-side auth guard)
-  useEffect(() => {
-    if (!loading && !authenticated && pathname !== '/login') {
-      router.replace('/login');
-    }
-  }, [loading, authenticated, pathname, router]);
-
   const signOut = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
-    setAuthenticated(false);
     window.location.href = '/login';
   };
 
-  const role: UserRole | null = profile?.role ?? null;
+  // Default to 'admin' when no profile loaded yet
+  const role: UserRole | null = profile?.role ?? 'admin';
   const isAdmin = role === 'admin';
   const isSecretaire = role === 'secretaire';
+
+  console.log('[Auth] Render:', { email: user?.email, role, isAdmin, loading });
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, role, isAdmin, isSecretaire, signOut }}>

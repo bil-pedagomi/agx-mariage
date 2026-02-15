@@ -28,6 +28,7 @@ export default function DashboardPage() {
   useEffect(() => { load(); }, []);
 
   const load = async () => {
+    try {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
@@ -128,7 +129,12 @@ export default function DashboardPage() {
 
     setStats({ caMois, caAnnee, mariagesMois: mariages.count || 0, impayesCount, impayesMontant });
     setProchains(prochainsRes.data || []);
-    setLoading(false);
+    } catch (err: any) {
+      console.error('Dashboard load error:', err?.message || err);
+    } finally {
+      console.log('[Dashboard] Load complete, setting loading=false');
+      setLoading(false);
+    }
   };
 
   // Charger le CA mensuel pour une année donnée
