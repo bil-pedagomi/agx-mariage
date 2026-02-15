@@ -7,8 +7,10 @@ import { formatDate, formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TrendingUp, Calendar, AlertTriangle, Heart, DollarSign, Users, ChevronLeft, ChevronRight, Landmark, Eye, FileText } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function DashboardPage() {
+  const { isAdmin } = useAuth();
   const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -188,31 +190,37 @@ export default function DashboardPage() {
   return (
     <div className="p-6 space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center"><DollarSign className="w-5 h-5 text-emerald-600" /></div>
-            <div><p className="text-2xl font-bold text-slate-900">{formatCurrency(stats.caMois)}</p><p className="text-xs text-slate-500">CA ce mois (TTC)</p></div>
+      <div className={`grid gap-4 ${isAdmin ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2'}`}>
+        {isAdmin && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center"><DollarSign className="w-5 h-5 text-emerald-600" /></div>
+              <div><p className="text-2xl font-bold text-slate-900">{formatCurrency(stats.caMois)}</p><p className="text-xs text-slate-500">CA ce mois (TTC)</p></div>
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-blue-600" /></div>
-            <div><p className="text-2xl font-bold text-slate-900">{formatCurrency(stats.caAnnee)}</p><p className="text-xs text-slate-500">CA annuel (TTC)</p></div>
+        )}
+        {isAdmin && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-blue-600" /></div>
+              <div><p className="text-2xl font-bold text-slate-900">{formatCurrency(stats.caAnnee)}</p><p className="text-xs text-slate-500">CA annuel (TTC)</p></div>
+            </div>
           </div>
-        </div>
+        )}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-pink-50 flex items-center justify-center"><Heart className="w-5 h-5 text-pink-500" /></div>
             <div><p className="text-2xl font-bold text-slate-900">{stats.mariagesMois}</p><p className="text-xs text-slate-500">Mariages ce mois</p></div>
           </div>
         </div>
-        <Link href="/clients?filtre=impayes" className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:border-red-300 hover:shadow-md transition-all">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-500" /></div>
-            <div><p className="text-2xl font-bold text-slate-900">{stats.impayesCount}</p><p className="text-xs text-slate-500">Dette clients ({formatCurrency(stats.impayesMontant)})</p></div>
-          </div>
-        </Link>
+        {isAdmin && (
+          <Link href="/clients?filtre=impayes" className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:border-red-300 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-500" /></div>
+              <div><p className="text-2xl font-bold text-slate-900">{stats.impayesCount}</p><p className="text-xs text-slate-500">Dette clients ({formatCurrency(stats.impayesMontant)})</p></div>
+            </div>
+          </Link>
+        )}
       </div>
 
       {/* Alertes paiements */}
@@ -285,8 +293,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Caisse */}
-      <Link href="/banque" className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:border-blue-300 hover:shadow-md transition-all block">
+      {/* Caisse — admin only */}
+      {isAdmin && <Link href="/banque" className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:border-blue-300 hover:shadow-md transition-all block">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center"><Landmark className="w-5 h-5 text-indigo-600" /></div>
           <h2 className="text-sm font-semibold text-slate-700">Caisse</h2>
@@ -305,7 +313,7 @@ export default function DashboardPage() {
             <p className={`text-xl font-bold ${caisse.total > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{formatCurrency(caisse.total)}</p>
           </div>
         </div>
-      </Link>
+      </Link>}
 
       {/* Prochains mariages */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200">
@@ -323,8 +331,8 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Graphique CA mensuel */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      {/* Graphique CA mensuel — admin only */}
+      {isAdmin && <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-sm font-semibold text-slate-700">Chiffre d&apos;affaires mensuel (TTC)</h2>
@@ -383,7 +391,7 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Graphique Mariages par mois + taux de remplissage */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">

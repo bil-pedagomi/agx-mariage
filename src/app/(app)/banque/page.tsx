@@ -6,6 +6,7 @@ import { formatDate, formatCurrency } from '@/lib/utils';
 import { Loader2, X, Trash2, BarChart3, ArrowRight, CheckSquare, Square, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import type { CategorieDebit } from '@/types/database';
+import AdminGuard from '@/components/AdminGuard';
 
 type PeriodFilter = 'tout' | 'annee' | 'mois' | 'custom';
 
@@ -48,7 +49,7 @@ const MOIS_LABELS = [
   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
 ];
 
-export default function BanquePage() {
+function BanqueContent() {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
 
@@ -846,4 +847,8 @@ export default function BanquePage() {
       )}
     </div>
   );
+}
+
+export default function BanquePage() {
+  return <AdminGuard><BanqueContent /></AdminGuard>;
 }

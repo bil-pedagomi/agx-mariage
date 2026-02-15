@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'collaborateur';
+export type UserRole = 'admin' | 'collaborateur' | 'secretaire';
 
 export type StatutDossier = 'prospect' | 'en_cours' | 'confirme' | 'termine' | 'annule';
 

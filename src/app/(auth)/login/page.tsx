@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 import { Heart, Mail, Lock, Loader2 } from 'lucide-react';
@@ -10,8 +10,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const router = useRouter();
   const supabase = createClient();
+
+  // If already logged in, redirect to dashboard
+  useEffect(() => {
+    supabase.auth.getUser().then((result: any) => {
+      if (result.data?.user) {
+        router.replace('/dashboard');
+      } else {
+        setCheckingSession(false);
+      }
+    });
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,9 +31,17 @@ export default function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { setError('Email ou mot de passe incorrect'); setLoading(false); return; }
-    router.push('/clients');
+    router.push('/dashboard');
     router.refresh();
   };
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100">
+        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100 px-4">
@@ -30,8 +50,8 @@ export default function LoginPage() {
           <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/25">
             <Heart className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">AGX Mariage</h1>
-          <p className="text-sm text-slate-500 mt-1">Gestion d&apos;événements de mariage</p>
+          <h1 className="text-2xl font-bold text-slate-900">L&apos;Élysée du Lac</h1>
+          <p className="text-sm text-slate-500 mt-1">AGX Mariage — Gestion d&apos;événements</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

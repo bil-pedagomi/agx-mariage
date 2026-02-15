@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import type { Parametres } from '@/types/database';
 import { Save, CheckCircle, LogOut, Loader2 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
+import AdminGuard from '@/components/AdminGuard';
 
-export default function ParametresPage() {
+function ParametresContent() {
   const [parametres, setParametres] = useState<Parametres | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -120,4 +121,8 @@ export default function ParametresPage() {
       </div>
     </div>
   );
+}
+
+export default function ParametresPage() {
+  return <AdminGuard><ParametresContent /></AdminGuard>;
 }

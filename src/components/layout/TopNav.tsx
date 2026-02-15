@@ -5,14 +5,17 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Users, Euro, Calendar, BookOpen, Home, Settings, Landmark,
   Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, X,
+  User, LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase-client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { isAdmin, user, signOut } = useAuth();
 
   const [clientIds, setClientIds] = useState<string[]>([]);
   const [lastClientId, setLastClientId] = useState<string | null>(null);
@@ -185,11 +188,13 @@ export default function TopNav() {
           <span className={cn('text-[10px] font-medium', isActive('/clients') ? 'text-white' : 'text-blue-100')}>Clients</span>
         </Link>
 
-        {/* Compte */}
-        <button onClick={handleCompteClick} className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', pathname.includes('/compte') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
-          <Euro className="w-6 h-6 text-white" strokeWidth={1.5} />
-          <span className={cn('text-[10px] font-medium', pathname.includes('/compte') ? 'text-white' : 'text-blue-100')}>Compte</span>
-        </button>
+        {/* Compte — admin only */}
+        {isAdmin && (
+          <button onClick={handleCompteClick} className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', pathname.includes('/compte') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
+            <Euro className="w-6 h-6 text-white" strokeWidth={1.5} />
+            <span className={cn('text-[10px] font-medium', pathname.includes('/compte') ? 'text-white' : 'text-blue-100')}>Compte</span>
+          </button>
+        )}
 
         {/* Planning */}
         <Link href="/planning" className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', isActive('/planning') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
@@ -197,23 +202,29 @@ export default function TopNav() {
           <span className={cn('text-[10px] font-medium', isActive('/planning') ? 'text-white' : 'text-blue-100')}>Planning</span>
         </Link>
 
-        {/* Recettes */}
-        <Link href="/recettes" className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', isActive('/recettes') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
-          <BookOpen className="w-6 h-6 text-white" strokeWidth={1.5} />
-          <span className={cn('text-[10px] font-medium', isActive('/recettes') ? 'text-white' : 'text-blue-100')}>Recettes</span>
-        </Link>
+        {/* Recettes — admin only */}
+        {isAdmin && (
+          <Link href="/recettes" className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', isActive('/recettes') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
+            <BookOpen className="w-6 h-6 text-white" strokeWidth={1.5} />
+            <span className={cn('text-[10px] font-medium', isActive('/recettes') ? 'text-white' : 'text-blue-100')}>Recettes</span>
+          </Link>
+        )}
 
-        {/* Banque */}
-        <Link href="/banque" className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', isActive('/banque') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
-          <Landmark className="w-6 h-6 text-white" strokeWidth={1.5} />
-          <span className={cn('text-[10px] font-medium', isActive('/banque') ? 'text-white' : 'text-blue-100')}>Banque</span>
-        </Link>
+        {/* Banque — admin only */}
+        {isAdmin && (
+          <Link href="/banque" className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', isActive('/banque') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
+            <Landmark className="w-6 h-6 text-white" strokeWidth={1.5} />
+            <span className={cn('text-[10px] font-medium', isActive('/banque') ? 'text-white' : 'text-blue-100')}>Banque</span>
+          </Link>
+        )}
 
-        {/* Paramètres */}
-        <Link href="/parametres" className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', isActive('/parametres') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
-          <Settings className="w-6 h-6 text-white" strokeWidth={1.5} />
-          <span className={cn('text-[10px] font-medium', isActive('/parametres') ? 'text-white' : 'text-blue-100')}>Paramètres</span>
-        </Link>
+        {/* Paramètres — admin only */}
+        {isAdmin && (
+          <Link href="/parametres" className={cn('flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all', isActive('/parametres') ? 'bg-blue-700' : 'hover:bg-blue-600')}>
+            <Settings className="w-6 h-6 text-white" strokeWidth={1.5} />
+            <span className={cn('text-[10px] font-medium', isActive('/parametres') ? 'text-white' : 'text-blue-100')}>Paramètres</span>
+          </Link>
+        )}
       </nav>
 
       {/* Secondary toolbar */}
@@ -273,6 +284,26 @@ export default function TopNav() {
         {currentClientId && clientIds.length > 0 && (
           <span className="text-[11px] text-slate-400 mr-2">{currentIndex + 1} / {clientIds.length}</span>
         )}
+
+        {/* User info + Déconnexion */}
+        {user && (
+          <div className="flex items-center gap-2 ml-2">
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+              <User size={13} className="text-slate-400" />
+              <span className="hidden sm:inline max-w-[180px] truncate">{user.email}</span>
+            </div>
+            <button
+              onClick={signOut}
+              className="flex items-center gap-1 px-2 py-1 rounded text-[11px] text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+              title="Déconnexion"
+            >
+              <LogOut size={13} />
+              <span className="hidden sm:inline">Déconnexion</span>
+            </button>
+          </div>
+        )}
+
+        <div className="w-px h-5 bg-slate-300 mx-1" />
         <span className="text-[11px] text-slate-400">AGX Mariage</span>
       </div>
     </header>

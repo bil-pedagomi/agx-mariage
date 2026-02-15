@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, subWeeks, addMonths, subMonths, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Suspense } from 'react';
+import AdminGuard from '@/components/AdminGuard';
 
 type ViewMode = 'jour' | 'semaine' | 'mois';
 
@@ -287,8 +288,10 @@ function RecettesPageInner() {
 
 export default function RecettesPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>}>
-      <RecettesPageInner />
-    </Suspense>
+    <AdminGuard>
+      <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>}>
+        <RecettesPageInner />
+      </Suspense>
+    </AdminGuard>
   );
 }

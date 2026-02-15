@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, X, Check, FileText, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import type { Client, Debit, Reglement, ModePaiement, CategorieDebit } from '@/types/database';
 import { formatDate, formatCurrency, MODE_PAIEMENT_LABELS } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EMPTY_DEBIT = {
   date: new Date().toISOString().split('T')[0],
@@ -29,6 +30,7 @@ export default function ComptePage() {
   const router = useRouter();
   const clientId = params.id as string;
   const supabase = createClient();
+  const { isAdmin } = useAuth();
 
   const [client, setClient] = useState<Client | null>(null);
   const [debits, setDebits] = useState<Debit[]>([]);
@@ -522,12 +524,14 @@ export default function ComptePage() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="text-base font-bold text-slate-800">Reglements</h2>
-            <button
-              onClick={() => { setShowReglementForm(!showReglementForm); setErrorReglement(''); }}
-              className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-colors"
-            >
-              {showReglementForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => { setShowReglementForm(!showReglementForm); setErrorReglement(''); }}
+                className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-colors"
+              >
+                {showReglementForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+              </button>
+            )}
           </div>
 
           <div className="flex-1 overflow-auto">
@@ -642,14 +646,16 @@ export default function ComptePage() {
                     <td className="px-4 py-3 text-right text-lg font-bold text-emerald-600">
                       {formatCurrency(Number(r.montant))}
                     </td>
-                    <td className="px-2 py-3">
-                      <button
-                        onClick={() => deleteReglement(r.id)}
-                        className="w-10 h-10 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="px-2 py-3">
+                        <button
+                          onClick={() => deleteReglement(r.id)}
+                          className="w-10 h-10 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
