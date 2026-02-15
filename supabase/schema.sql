@@ -61,6 +61,8 @@ CREATE TABLE reglements (
   mode TEXT NOT NULL CHECK (mode IN ('cb', 'virement', 'especes', 'cheque')),
   reference TEXT,
   montant NUMERIC NOT NULL,
+  depose BOOLEAN DEFAULT false,
+  date_depot DATE,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

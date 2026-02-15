@@ -74,6 +74,8 @@ export interface Reglement {
   mode: ModePaiement;
   reference: string | null;
   montant: number;
+  depose: boolean;
+  date_depot: string | null;
   created_at: string;
 }
 
